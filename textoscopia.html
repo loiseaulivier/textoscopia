@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Textoscopia — Corpus Linguistics Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f2eb;
+    --bg2: #edeadf;
+    --bg3: #e4e0d3;
+    --ink: #1a1814;
+    --ink2: #5a5649;
+    --ink3: #8c8779;
+    --accent: #2E7D5E;
+    --accent2: #3d9e78;
+    --border: rgba(26,24,20,0.12);
+    --border2: rgba(26,24,20,0.22);
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --radius: 6px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border2);
+    padding: 0 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 58px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .logo-mark {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+  }
+
+  .logo-sub {
+    font-size: 12px;
+    color: var(--ink3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .corpus-badge {
+    display: none;
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 3px 10px;
+    color: var(--ink2);
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 58px);
+    align-items: start;
+  }
+
+  /* ── SIDEBAR ── */
+  aside {
+    border-right: 1px solid var(--border);
+    padding: 2rem 1.5rem;
+    background: var(--bg);
+    position: sticky;
+    top: 58px;
+    height: calc(100vh - 58px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .upload-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+  }
+
+  .upload-zone:hover {
+    border-color: var(--accent);
+    background: rgba(46,125,94,0.04);
+  }
+
+  .upload-zone.loaded {
+    border-style: solid;
+    border-color: var(--accent);
+    background: rgba(46,125,94,0.06);
+  }
+
+  .upload-icon {
+    width: 36px;
+    height: 36px;
+    margin: 0 auto 10px;
+    background: var(--bg3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .upload-zone p {
+    font-size: 13px;
+    color: var(--ink2);
+    line-height: 1.4;
+  }
+
+  .upload-zone .hint {
+    font-size: 11px;
+    color: var(--ink3);
+    margin-top: 4px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+  }
+
+  .stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink3);
+    margin-bottom: 3px;
+  }
+
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .nav-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink3);
+    margin-bottom: 6px;
+  }
+
+  nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--ink2);
+    transition: all 0.1s;
+    border: none;
+    background: transparent;
+    text-align: left;
+    width: 100%;
+  }
+
+  .nav-item:hover { background: var(--bg3); color: var(--ink); }
+
+  .nav-item.active {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .nav-item .nav-icon {
+    font-family: var(--mono);
+    font-size: 11px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.12);
+    flex-shrink: 0;
+  }
+
+  .nav-item:not(.active) .nav-icon {
+    background: var(--bg3);
+    color: var(--ink3);
+  }
+
+  /* ── MAIN ── */
+  main {
+    padding: 2.5rem 3rem;
+    min-width: 0;
+    min-height: calc(100vh - 58px);
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .panel-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  .panel-desc {
+    font-size: 13px;
+    color: var(--ink2);
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .field label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink3);
+  }
+
+  input[type=text], input[type=number], select {
+    font-family: var(--mono);
+    font-size: 13px;
+    height: 36px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 0 10px;
+    background: var(--bg);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type=text]:focus, input[type=number]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(46,125,94,0.1);
+  }
+
+  input[type=text] { min-width: 220px; }
+  input[type=number] { width: 72px; }
+
+  .checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--ink2);
+    cursor: pointer;
+    padding-bottom: 8px;
+  }
+
+  input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+
+  .btn {
+    height: 36px;
+    padding: 0 20px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── RESULTS ── */
+  .results-wrap {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .results-header {
+    padding: 10px 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--ink2);
+    font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .results-body {
+    padding: 1rem 1.25rem;
+    min-height: 160px;
+    max-height: 65vh;
+    overflow-y: auto;
+  }
+
+  .placeholder {
+    color: var(--ink3);
+    font-size: 14px;
+    font-style: italic;
+    padding: 2rem 0;
+    text-align: center;
+  }
+
+  /* ── KWIC TABLE ── */
+  .kwic-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .kwic-table th {
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink3);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  .kwic-table th.th-left { text-align: right; }
+
+  .kwic-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .kwic-table tr:last-child td { border-bottom: none; }
+  .kwic-table tr:hover td { background: var(--bg2); }
+
+  .td-left {
+    text-align: right;
+    color: var(--ink2);
+    width: 38%;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .td-node {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    background: rgba(46,125,94,0.07);
+    white-space: nowrap;
+    padding: 5px 10px !important;
+    border-left: 2px solid var(--accent);
+    border-right: 2px solid var(--accent);
+  }
+
+  .td-right {
+    color: var(--ink2);
+    width: 38%;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  /* ── FREQ BARS ── */
+  .freq-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .freq-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    min-width: 0;
+  }
+
+  .freq-word {
+    font-family: var(--mono);
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 80px;
+    max-width: 160px;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+
+  .freq-bar-wrap {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg3);
+    border-radius: 2px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  .freq-bar {
+    height: 6px;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .freq-count {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink3);
+    text-align: right;
+    flex-shrink: 0;
+    min-width: 36px;
+  }
+
+  /* ── COLLOC CHIPS ── */
+  .colloc-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .colloc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-family: var(--mono);
+    cursor: default;
+    transition: all 0.1s;
+  }
+
+  .colloc-chip:hover { border-color: var(--accent); background: rgba(46,125,94,0.06); }
+
+  .colloc-n {
+    color: var(--ink3);
+    font-size: 11px;
+  }
+
+  /* ── WELCOME ── */
+  .welcome {
+    max-width: 560px;
+    margin: 4rem auto;
+    text-align: center;
+  }
+
+  .welcome h1 {
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .welcome h1 span { color: var(--accent); }
+
+  .welcome p {
+    color: var(--ink2);
+    font-size: 15px;
+    line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    text-align: left;
+    margin-top: 2rem;
+  }
+
+  .feature-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+  }
+
+  .feature-card .fc-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .feature-card p {
+    font-size: 12px;
+    color: var(--ink2);
+    line-height: 1.5;
+  }
+
+  /* ── ASK (removed) ── */
+  .ask-input-row, .ask-response { display: none; }
+
+  /* ── COLLOC MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,24,20,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    width: min(820px, 92vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  }
+  .modal-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .modal-title {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .modal-title span { color: var(--accent); }
+  .modal-subtitle {
+    font-size: 12px;
+    color: var(--ink3);
+    margin-left: 10px;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--ink3);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+  }
+  .modal-close:hover { color: var(--ink); }
+  .modal-body {
+    overflow-y: auto;
+    padding: 0;
+    flex: 1;
+  }
+  .modal-footer {
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .modal-footer span { font-size: 12px; color: var(--ink3); font-family: var(--mono); }
+  .colloc-chip { cursor: pointer; }
+  .colloc-chip:hover { border-color: var(--accent); color: var(--accent); background: rgba(46,125,94,0.06); }
+  .td-node-a { color: var(--accent); font-weight: 500; font-family: var(--mono); font-size: 12px; background: rgba(46,125,94,0.07); padding: 5px 10px !important; border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+  .td-node-b { color: #185FA5; font-weight: 500; font-family: var(--mono); font-size: 12px; background: rgba(24,95,165,0.07); padding: 5px 6px !important; }
+
+  /* ── SPINNER ── */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg { color: #c0392b; font-size: 13px; }
+
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink3);
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-download:hover { color: var(--accent); border-color: var(--accent); background: rgba(46,125,94,0.05); }
+  .btn-download:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+
+  .btn-help {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink2);
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-help:hover { border-color: var(--accent); color: var(--accent); background: rgba(46,125,94,0.05); }
+  .btn-help.active { border-color: var(--accent); color: var(--accent); background: rgba(46,125,94,0.07); }
+  .btn-help .help-icon {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 500; flex-shrink: 0;
+  }
+
+  /* ── INLINE HELP PANEL ── */
+  .help-panel {
+    display: none;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    background: var(--bg);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .help-panel.open { display: block; }
+  .help-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .help-section:last-child { border-bottom: none; }
+  .help-section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink3);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0 24px;
+  }
+  .help-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
+    align-items: baseline;
+    padding: 3px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 12.5px;
+  }
+  .help-row:last-child { border-bottom: none; }
+  .help-pat { font-family: var(--mono); font-size: 12px; color: var(--accent); white-space: nowrap; }
+  .help-desc { color: var(--ink2); }
+  .help-example-block { display: flex; flex-direction: column; gap: 5px; }
+  .help-example {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg2);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+    border: 1px solid transparent;
+  }
+  .help-example:hover { background: rgba(46,125,94,0.07); border-color: rgba(46,125,94,0.3); }
+  .ex-pat { font-family: var(--mono); font-size: 12px; color: var(--accent); min-width: 190px; flex-shrink: 0; }
+  .ex-desc { font-size: 12px; color: var(--ink2); flex: 1; }
+  .ex-tag { font-size: 10px; color: var(--ink3); background: var(--bg3); border-radius: 999px; padding: 2px 8px; white-space: nowrap; margin-left: auto; flex-shrink: 0; }
+
+  /* ── FILE LIST ── */
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--ink2);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px 8px;
+  }
+  .file-item .file-ok { color: #1D9E75; flex-shrink: 0; }
+  .file-item .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-item .file-words { color: var(--ink3); flex-shrink: 0; }
+  .file-item .file-remove {
+    background: none; border: none; cursor: pointer;
+    color: var(--ink3); font-size: 14px; line-height: 1;
+    padding: 0 0 0 4px; flex-shrink: 0;
+  }
+  .file-item .file-remove:hover { color: var(--accent); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 1.5rem; }
+    .welcome { margin: 2rem auto; }
+    .feature-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-mark">Textoscopia</span>
+    <span class="logo-sub">Linguistics Tool</span>
+  </div>
+  <div class="header-actions">
+    <span class="corpus-badge" id="corpusBadge">—</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside>
+    <div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📄</div>
+        <p id="uploadText">Click to upload files</p>
+        <p class="hint">.pdf or .docx · multiple files supported</p>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,.docx" multiple style="display:none" />
+      <div id="fileList" style="display:none; margin-top:8px; display:flex; flex-direction:column; gap:4px;"></div>
+    </div>
+
+    <div id="statsSection" style="display:none">
+      <div class="nav-label">Corpus stats</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Words</div><div class="stat-val" id="statWords">—</div></div>
+        <div class="stat-card"><div class="stat-label">Unique</div><div class="stat-val" id="statUniq">—</div></div>
+        <div class="stat-card"><div class="stat-label">Sentences</div><div class="stat-val" id="statSents">—</div></div>
+        <div class="stat-card"><div class="stat-label">Pages</div><div class="stat-val" id="statPages">—</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="nav-label">Tools</div>
+      <nav id="navMenu">
+        <button class="nav-item active" onclick="switchTab('welcome')">
+          <span class="nav-icon">⌂</span> Overview
+        </button>
+        <button class="nav-item" onclick="switchTab('kwic')">
+          <span class="nav-icon">KW</span> KWIC
+        </button>
+        <button class="nav-item" onclick="switchTab('freq')">
+          <span class="nav-icon">Σ</span> Word frequency
+        </button>
+        <button class="nav-item" onclick="switchTab('colloc')">
+          <span class="nav-icon">Co</span> Collocations
+        </button>
+        <button class="nav-item" onclick="switchTab('pattern')">
+          <span class="nav-icon">.*</span> Pattern search
+        </button>
+        <button class="nav-item" onclick="switchTab('ngram')">
+          <span class="nav-icon">Ng</span> N-grams
+        </button>
+        <button class="nav-item" onclick="switchTab('dispersion')">
+          <span class="nav-icon">∿</span> Dispersion
+        </button>
+        <button class="nav-item" onclick="switchTab('ttr')">
+          <span class="nav-icon">T/T</span> Type/Token
+        </button>
+        <button class="nav-item" onclick="switchTab('keywords')">
+          <span class="nav-icon">Kw</span> Keywords
+        </button>
+        <button class="nav-item" onclick="switchTab('export')">
+          <span class="nav-icon">↓</span> Export
+        </button>
+
+      </nav>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- WELCOME -->
+    <div id="tab-welcome" class="panel active">
+      <div class="welcome">
+        <h1>Analyse your corpus<br>with <span>precision</span></h1>
+        <p>Upload one or more PDF or Word documents (.docx) to explore your texts using a full set of corpus linguistics tools — all in your browser, nothing sent to a server.</p>
+        <button class="btn btn-primary" style="font-size:14px; height:42px; padding:0 28px;" onclick="document.getElementById('fileInput').click()">Upload files to begin</button>
+        <div class="feature-grid" style="grid-template-columns:1fr 1fr;margin-top:2rem;">
+          <div class="feature-card"><div class="fc-label">KWIC</div><p>See every occurrence of a word in context, with a configurable left and right window.</p></div>
+          <div class="feature-card"><div class="fc-label">Word frequency</div><p>Ranked list of the most common words, with frequency bars.</p></div>
+          <div class="feature-card"><div class="fc-label">Collocations</div><p>Find which words habitually appear near a node word. Click any collocate to see all concordance lines.</p></div>
+          <div class="feature-card"><div class="fc-label">Pattern search</div><p>Use regular expressions to find any linguistic pattern, shown in KWIC-style context. Includes a regex help panel.</p></div>
+          <div class="feature-card"><div class="fc-label">N-grams</div><p>Find the most frequent sequences of 2, 3, 4 or 5 consecutive words in the corpus.</p></div>
+          <div class="feature-card"><div class="fc-label">Dispersion</div><p>Visualise where in the corpus a word appears — whether it clusters in one section or spreads evenly.</p></div>
+          <div class="feature-card"><div class="fc-label">Type / Token ratio</div><p>Measure lexical diversity with TTR and the more reliable MATTR. Shows a per-file breakdown with multiple texts.</p></div>
+          <div class="feature-card"><div class="fc-label">Keyword analysis</div><p>With two or more files, identifies which words are statistically distinctive in each text using log-likelihood.</p></div>
+          <div class="feature-card" style="grid-column:span 2"><div class="fc-label">Export</div><p>Download the full extracted text of your corpus as a plain .txt file for use in other tools.</p></div>
+        </div>
+
+        <div style="margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--border); text-align:left; max-width:560px; margin-left:auto; margin-right:auto;">
+          <p style="font-size:13px; color:var(--ink2); line-height:1.8; margin-bottom:0.6rem;">
+            <strong style="font-weight:500; color:var(--ink)">Textoscopia</strong> was designed and developed by <a href="https://m-olivierloiseau.com/" target="_blank" rel="noopener" style="color:var(--accent); font-weight:500; text-decoration:none; border-bottom:1px solid currentColor;">Marc Olivier</a>.
+          </p>
+          <p style="font-size:12px; color:var(--ink3); line-height:1.8;">
+            This tool was built with the assistance of <strong style="font-weight:500; color:var(--ink2)">Claude</strong>, an AI assistant made by Anthropic. All conceptual decisions, feature choices, design directions, and linguistic framing were made by the author. The use of AI assistance is disclosed in accordance with emerging best practices in digital humanities scholarship.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- KWIC -->
+    <div id="tab-kwic" class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Keyword in context</div>
+        <div class="panel-desc">See every occurrence of a word surrounded by its context.</div>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label>Search word</label>
+          <input type="text" id="kwicWord" placeholder="e.g. language" />
+        </div>
+        <div class="field">
+          <label>Window size</label>
+          <input type="number" id="kwicWindow" value="5" min="1" max="30" />
+        </div>
+        <button class="btn btn-primary" onclick="runKWIC()">Search</button>
+      </div>
+      <div class="results-wrap">
+        <div class="results-header">
+          <span id="kwicMeta">—</span>
+          <button class="btn-download" id="kwicDownload" onclick="downloadKWIC()" disabled>↓ CSV</button>
+        </div>
+        <div class="results-body" id="kwicResults">
+          <div class="placeholder">Enter a word above and click Search.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FREQ -->
+    <div id="tab-freq" class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Word frequency</div>
+        <div class="panel-desc">Ranked list of the most common words in the corpus.</div>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label>Show top N</label>
+          <input type="number" id="freqN" value="30" min="5" max="200" />
+        </div>
+        <button class="btn btn-primary" onclick="runFreq()">Analyse</button>
+      </div>
+      <div class="results-wrap">
+        <div class="results-header"><span id="freqMeta">—</span><button class="btn-download" id="freqDownload" onclick="downloadFreq()" disabled>↓ CSV</button></div>
+        <div class="results-body" id="freqResults">
+          <div class="placeholder">Click Analyse to generate frequency list.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLLOC -->
+    <div id="tab-colloc" class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Collocations</div>
+        <div class="panel-desc">Discover words that habitually co-occur with a node word.</div>
+        <p style="font-size:12px; color:var(--ink3); margin-top:8px; line-height:1.6;">The number on each chip (e.g. <span style="font-family:var(--mono); color:var(--accent)">18</span>) is how many times that word appeared within the ±span window around your node word. When you click a chip, the concordance table shows how many lines contain both words — this count may differ because it centres on each occurrence of the <em>node word</em> rather than counting individual token hits.</p>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label>Node word</label>
+          <input type="text" id="collocWord" placeholder="e.g. social" />
+        </div>
+        <div class="field">
+          <label>Span ± words</label>
+          <input type="number" id="collocSpan" value="3" min="1" max="15" />
+        </div>
+        <button class="btn btn-primary" onclick="runColloc()">Find collocates</button>
+      </div>
+      <div class="results-wrap">
+        <div class="results-header"><span id="collocMeta">—</span><button class="btn-download" id="collocDownload" onclick="downloadColloc()" disabled>↓ CSV</button></div>
+        <div class="results-body" id="collocResults">
+          <div class="placeholder">Enter a node word and click Find collocates.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PATTERN -->
+    <div id="tab-pattern" class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Pattern search</div>
+        <div class="panel-desc">Use regular expressions to find patterns — results shown in KWIC-style context.</div>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label>Regex pattern</label>
+          <input type="text" id="patternInput" placeholder="e.g. \w*r\b\s+la\b" style="min-width:280px;" />
+        </div>
+        <div class="field">
+          <label>Context window</label>
+          <input type="number" id="patternWindow" value="5" min="1" max="30" />
+        </div>
+        <label class="checkbox-field">
+          <input type="checkbox" id="patternCase" /> Case sensitive
+        </label>
+        <button class="btn btn-primary" onclick="runPattern()">Search</button>
+        <button class="btn-help" id="helpToggle" onclick="toggleHelp()"><span class="help-icon">?</span> Regex help</button>
+      </div>
+
+      <!-- INLINE HELP PANEL -->
+      <div class="help-panel" id="helpPanel">
+
+        <div class="help-section">
+          <div class="help-section-title">Characters &amp; wildcards</div>
+          <div class="help-grid">
+            <div class="help-row"><span class="help-pat">\w</span><span class="help-desc">any word character (letter, digit, _)</span></div>
+            <div class="help-row"><span class="help-pat">\W</span><span class="help-desc">any non-word character</span></div>
+            <div class="help-row"><span class="help-pat">\d</span><span class="help-desc">any digit (0–9)</span></div>
+            <div class="help-row"><span class="help-pat">\s</span><span class="help-desc">any whitespace (space, tab…)</span></div>
+            <div class="help-row"><span class="help-pat">.</span><span class="help-desc">any single character except newline</span></div>
+            <div class="help-row"><span class="help-pat">[abc]</span><span class="help-desc">one of: a, b, or c</span></div>
+            <div class="help-row"><span class="help-pat">[a-z]</span><span class="help-desc">any lowercase letter</span></div>
+            <div class="help-row"><span class="help-pat">[^abc]</span><span class="help-desc">any character except a, b, c</span></div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <div class="help-section-title">Quantifiers</div>
+          <div class="help-grid">
+            <div class="help-row"><span class="help-pat">*</span><span class="help-desc">0 or more of the preceding</span></div>
+            <div class="help-row"><span class="help-pat">+</span><span class="help-desc">1 or more of the preceding</span></div>
+            <div class="help-row"><span class="help-pat">?</span><span class="help-desc">0 or 1 — makes preceding optional</span></div>
+            <div class="help-row"><span class="help-pat">{n}</span><span class="help-desc">exactly n repetitions</span></div>
+            <div class="help-row"><span class="help-pat">{n,m}</span><span class="help-desc">between n and m repetitions</span></div>
+            <div class="help-row"><span class="help-pat">{n,}</span><span class="help-desc">n or more repetitions</span></div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <div class="help-section-title">Anchors &amp; boundaries</div>
+          <div class="help-grid">
+            <div class="help-row"><span class="help-pat">\b</span><span class="help-desc">word boundary (start or end of word)</span></div>
+            <div class="help-row"><span class="help-pat">\B</span><span class="help-desc">not a word boundary (inside a word)</span></div>
+            <div class="help-row"><span class="help-pat">^</span><span class="help-desc">start of string</span></div>
+            <div class="help-row"><span class="help-pat">$</span><span class="help-desc">end of string</span></div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <div class="help-section-title">Groups &amp; alternation</div>
+          <div class="help-grid">
+            <div class="help-row"><span class="help-pat">(abc)</span><span class="help-desc">group — treat as a single unit</span></div>
+            <div class="help-row"><span class="help-pat">(?:abc)</span><span class="help-desc">non-capturing group</span></div>
+            <div class="help-row"><span class="help-pat">a|b</span><span class="help-desc">a or b (alternation)</span></div>
+            <div class="help-row"><span class="help-pat">\s+</span><span class="help-desc">one or more spaces (gap between words)</span></div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <div class="help-section-title">Examples — click any row to insert into the search box</div>
+          <div class="help-example-block">
+            <div class="help-example" onclick="insertPattern('\\w*ing\\b')"><span class="ex-pat">\w*ing\b</span><span class="ex-desc">all gerunds / present participles</span><span class="ex-tag">morphology</span></div>
+            <div class="help-example" onclick="insertPattern('\\bun\\w+')"><span class="ex-pat">\bun\w+</span><span class="ex-desc">words starting with "un"</span><span class="ex-tag">prefix</span></div>
+            <div class="help-example" onclick="insertPattern('\\w*tion\\b')"><span class="ex-pat">\w*tion\b</span><span class="ex-desc">words ending in "-tion" (nominalisations)</span><span class="ex-tag">suffix</span></div>
+            <div class="help-example" onclick="insertPattern('\\w*ment\\b')"><span class="ex-pat">\w*ment\b</span><span class="ex-desc">words ending in "-ment"</span><span class="ex-tag">suffix</span></div>
+            <div class="help-example" onclick="insertPattern('\\w*r\\b\\s+la\\b')"><span class="ex-pat">\w*r\b\s+la\b</span><span class="ex-desc">word ending in "r" followed by "la"</span><span class="ex-tag">sequence</span></div>
+            <div class="help-example" onclick="insertPattern('\\bthe\\s+\\w+\\s+of\\b')"><span class="ex-pat">\bthe\s+\w+\s+of\b</span><span class="ex-desc">"the … of" nominal pattern</span><span class="ex-tag">sequence</span></div>
+            <div class="help-example" onclick="insertPattern('\\b(very|quite|rather|fairly)\\s+\\w+')"><span class="ex-pat">\b(very|quite|rather|fairly)\s+\w+</span><span class="ex-desc">degree adverb + following word</span><span class="ex-tag">colligation</span></div>
+            <div class="help-example" onclick="insertPattern('\\b\\w{10,}\\b')"><span class="ex-pat">\b\w{10,}\b</span><span class="ex-desc">words of 10 or more characters</span><span class="ex-tag">word length</span></div>
+            <div class="help-example" onclick="insertPattern('\\b[A-Z][a-z]+\\b')"><span class="ex-pat">\b[A-Z][a-z]+\b</span><span class="ex-desc">capitalised words (proper nouns etc.) — use case sensitive</span><span class="ex-tag">proper nouns</span></div>
+            <div class="help-example" onclick="insertPattern('\\b\\d+\\b')"><span class="ex-pat">\b\d+\b</span><span class="ex-desc">standalone numbers</span><span class="ex-tag">numerals</span></div>
+            <div class="help-example" onclick="insertPattern('\\bne\\s+\\w+\\s+pas\\b')"><span class="ex-pat">\bne\s+\w+\s+pas\b</span><span class="ex-desc">French negation pattern "ne … pas"</span><span class="ex-tag">syntax</span></div>
+            <div class="help-example" onclick="insertPattern('\\b(is|are|was|were)\\s+\\w+ed\\b')"><span class="ex-pat">\b(is|are|was|were)\s+\w+ed\b</span><span class="ex-desc">passive constructions</span><span class="ex-tag">grammar</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="results-wrap">
+        <div class="results-header"><span id="patternMeta">—</span><button class="btn-download" id="patternDownload" onclick="downloadPattern()" disabled>↓ CSV</button></div>
+        <div class="results-body" id="patternResults">
+          <div class="placeholder">Enter a pattern and click Search.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- N-GRAMS -->
+    <div id="tab-ngram" class="panel">
+      <div class="panel-header">
+        <div class="panel-title">N-grams</div>
+        <div class="panel-desc">Find the most frequent sequences of words in the corpus.</div>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label>N (words per sequence)</label>
+          <input type="number" id="ngramN" value="2" min="2" max="5" />
+        </div>
+        <div class="field">
+          <label>Show top</label>
+          <input type="number" id="ngramTop" value="30" min="5" max="200" />
+        </div>
+        <button class="btn btn-primary" onclick="runNgram()">Analyse</button>
+      </div>
+      <div class="results-wrap">
+        <div class="results-header"><span id="ngramMeta">—</span><button class="btn-download" id="ngramDownload" onclick="downloadNgram()" disabled>↓ CSV</button></div>
+        <div class="results-body" id="ngramResults"><div class="placeholder">Select N and click Analyse.</div></div>
+      </div>
+    </div>
+
+    <!-- DISPERSION -->
+    <div id="tab-dispersion" class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Dispersion plot</div>
+        <div class="panel-desc">See where in the corpus a word appears — whether it clusters in one area or spreads evenly throughout.</div>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label>Word(s) — comma separated</label>
+          <input type="text" id="dispersionWords" placeholder="e.g. language, corpus, text" style="min-width:280px;" />
+        </div>
+        <button class="btn btn-primary" onclick="runDispersion()">Plot</button>
+      </div>
+      <div class="results-wrap">
+        <div class="results-header"><span id="dispersionMeta">—</span></div>
+        <div class="results-body" id="dispersionResults"><div class="placeholder">Enter one or more words to plot their dispersion.</div></div>
+      </div>
+    </div>
+
+    <!-- TYPE/TOKEN -->
+    <div id="tab-ttr" class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Type / Token ratio</div>
+        <div class="panel-desc">A measure of lexical diversity — how varied the vocabulary is. A higher ratio means more varied language.</div>
+        <p style="font-size:12px; color:var(--ink3); margin-top:8px; line-height:1.6;"><strong style="font-weight:500;color:var(--ink2)">Tokens</strong> = total words in the corpus. <strong style="font-weight:500;color:var(--ink2)">Types</strong> = unique word forms. <strong style="font-weight:500;color:var(--ink2)">TTR</strong> = types ÷ tokens × 100. Because TTR decreases as texts get longer, the <strong style="font-weight:500;color:var(--ink2)">MATTR</strong> (Moving Average TTR) gives a more reliable comparison across texts of different lengths.</p>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label>MATTR window (words)</label>
+          <input type="number" id="mattrWindow" value="100" min="20" max="500" />
+        </div>
+        <button class="btn btn-primary" onclick="runTTR()">Calculate</button>
+      </div>
+      <div class="results-wrap">
+        <div class="results-header"><span id="ttrMeta">—</span></div>
+        <div class="results-body" id="ttrResults"><div class="placeholder">Click Calculate to measure lexical diversity.</div></div>
+      </div>
+    </div>
+
+    <!-- KEYWORDS -->
+    <div id="tab-keywords" class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Keyword analysis</div>
+        <div class="panel-desc">Identify which words are statistically distinctive in your corpus — words that appear more often than you would expect by chance.</div>
+        <p style="font-size:12px; color:var(--ink3); margin-top:8px; line-height:1.6;">Each file is compared against all the others combined. A word is a <strong style="font-weight:500;color:var(--ink2)">keyword</strong> when it appears significantly more often in one text than its frequency across the whole corpus would lead you to expect. Requires at least two files. Uses the <strong style="font-weight:500;color:var(--ink2)">log-likelihood (LL)</strong> statistic.</p>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label>Show top</label>
+          <input type="number" id="keywordsTop" value="30" min="5" max="100" />
+        </div>
+        <button class="btn btn-primary" onclick="runKeywords()">Analyse</button>
+      </div>
+      <div class="results-wrap">
+        <div class="results-header"><span id="keywordsMeta">—</span><button class="btn-download" id="keywordsDownload" onclick="downloadKeywords()" disabled>↓ CSV</button></div>
+        <div class="results-body" id="keywordsResults"><div class="placeholder">Click Analyse to find distinctive words.</div></div>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div id="tab-export" class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Export corpus</div>
+        <div class="panel-desc">Download the full extracted text of your corpus as a plain .txt file.</div>
+      </div>
+      <div class="results-wrap" style="min-height:auto;">
+        <div class="results-body" id="exportResults">
+          <div class="placeholder">Load files first, then export below.</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- COLLOC KWIC MODAL -->
+<div class="modal-overlay" id="collocModal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <span class="modal-title" id="modalTitle">—</span>
+        <span class="modal-subtitle" id="modalSubtitle"></span>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('collocModal').classList.remove('open')">×</button>
+    </div>
+    <div class="modal-body">
+      <table class="kwic-table" id="modalTable" style="width:100%">
+        <thead><tr>
+          <th class="th-left" style="padding:8px 10px">left context</th>
+          <th style="padding:8px 10px">collocate</th>
+          <th style="padding:8px 10px">node word</th>
+          <th style="padding:8px 10px">right context</th>
+        </tr></thead>
+        <tbody id="modalBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <span id="modalMeta">—</span>
+      <button class="btn-download" onclick="downloadModalCSV()">↓ CSV</button>
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let corpusText = '';
+let corpusWords = [];
+let corpusPages = 0;
+
+const STOPWORDS = new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','by','from','as','is','was','are','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','shall','can','that','this','these','those','it','its','he','she','they','we','you','i','me','him','her','us','them','my','your','his','our','their','which','who','whom','what','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','not','only','same','so','than','too','very','s','t','just','don','about','into','through','during','before','after','above','below','between','out','off','over','under','again','then','once','there','here','also','up','down','while','re','ve','ll','d','m']);
+
+// FILE STORE — persists across add/remove
+let loadedFiles = []; // { name, text, pages, words }
+
+async function extractText(file) {
+  if (file.name.toLowerCase().endsWith('.docx')) {
+    const buf = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: buf });
+    return { text: result.value, pages: null };
+  } else {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let txt = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      txt += content.items.map(s => s.str).join(' ') + '\n';
+    }
+    return { text: txt, pages: pdf.numPages };
+  }
+}
+
+function rebuildCorpus() {
+  const combinedText = loadedFiles.map(f => f.text).join('\n');
+  corpusText = combinedText;
+  corpusWords = combinedText.toLowerCase().match(/\b[a-záàâäéèêëîïôùûüçœ']+\b/g) || [];
+  const totalPages = loadedFiles.reduce((s, f) => s + (f.pages || 0), 0);
+  corpusPages = totalPages || '—';
+  const sents = combinedText.split(/[.!?]+/).filter(s => s.trim().length > 10).length;
+  const unique = new Set(corpusWords).size;
+
+  document.getElementById('statWords').textContent = fmt(corpusWords.length);
+  document.getElementById('statSents').textContent = fmt(sents);
+  document.getElementById('statUniq').textContent = fmt(unique);
+  document.getElementById('statPages').textContent = corpusPages;
+
+  const n = loadedFiles.length;
+  if (n === 0) {
+    document.getElementById('statsSection').style.display = 'none';
+    document.getElementById('uploadZone').classList.remove('loaded');
+    document.getElementById('uploadText').textContent = 'Click to upload files';
+    document.getElementById('corpusBadge').style.display = 'none';
+    document.getElementById('fileList').style.display = 'none';
+    document.getElementById('fileList').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('statsSection').style.display = 'block';
+  document.getElementById('uploadZone').classList.add('loaded');
+  document.getElementById('uploadText').textContent = n === 1 ? '✓ ' + (loadedFiles[0].name.length > 26 ? loadedFiles[0].name.slice(0,23)+'…' : loadedFiles[0].name) : '✓ ' + n + ' files loaded';
+  document.getElementById('corpusBadge').style.display = 'block';
+  document.getElementById('corpusBadge').textContent = n === 1 ? loadedFiles[0].name : n + ' files';
+
+  renderFileList();
+}
+
+function renderFileList() {
+  const fileListEl = document.getElementById('fileList');
+  if (loadedFiles.length === 0) { fileListEl.style.display = 'none'; fileListEl.innerHTML = ''; return; }
+  fileListEl.style.display = 'flex';
+  fileListEl.innerHTML = loadedFiles.map((f, i) =>
+    `<div class="file-item">
+      <span class="file-ok">✓</span>
+      <span class="file-name" title="${esc(f.name)}">${esc(f.name)}</span>
+      <span class="file-words">${fmt(f.words)} words</span>
+      <button class="file-remove" onclick="removeFile(${i})" title="Remove this file">×</button>
+    </div>`
+  ).join('');
+}
+
+function removeFile(index) {
+  loadedFiles.splice(index, 1);
+  rebuildCorpus();
+}
+
+document.getElementById('fileInput').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  document.getElementById('uploadText').innerHTML = '<span class="spinner"></span>Extracting…';
+
+  for (const file of files) {
+    // skip duplicates by name
+    if (loadedFiles.some(f => f.name === file.name)) continue;
+    try {
+      const { text, pages } = await extractText(file);
+      const words = (text.toLowerCase().match(/\b[a-záàâäéèêëîïôùûüçœ']+\b/g) || []).length;
+      loadedFiles.push({ name: file.name, text, pages, words });
+    } catch(err) {
+      console.error('Failed to load', file.name, err);
+    }
+  }
+
+  // reset so the same file can be re-added after removal
+  e.target.value = '';
+  rebuildCorpus();
+});
+
+function fmt(n) { return Number(n).toLocaleString(); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function switchTab(name) {
+  const tabs = ['welcome','kwic','freq','colloc','pattern','ngram','dispersion','ttr','keywords','export'];
+  tabs.forEach((t, i) => {
+    const panel = document.getElementById('tab-' + t);
+    if (panel) panel.classList.toggle('active', t === name);
+    const navItems = document.querySelectorAll('.nav-item');
+    if (navItems[i]) navItems[i].classList.toggle('active', t === name);
+  });
+  if (name === 'export') updateExportPanel();
+}
+
+// KWIC
+function runKWIC() {
+  const word = document.getElementById('kwicWord').value.trim();
+  const win = parseInt(document.getElementById('kwicWindow').value) || 5;
+  if (!word || !corpusText) return;
+  const tokens = corpusText.split(/\s+/);
+  const re = new RegExp('\\b' + word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
+  const results = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (re.test(tokens[i])) {
+      results.push({
+        left: tokens.slice(Math.max(0,i-win),i).join(' '),
+        node: tokens[i],
+        right: tokens.slice(i+1,i+1+win).join(' ')
+      });
+    }
+  }
+  document.getElementById('kwicMeta').textContent = results.length + ' occurrence' + (results.length===1?'':'s') + ' · all results';
+  lastKWIC = results;
+  document.getElementById('kwicDownload').disabled = !results.length;
+  const el = document.getElementById('kwicResults');
+  if (!results.length) { el.innerHTML = '<div class="placeholder">No matches found for "' + esc(word) + '".</div>'; return; }
+  const rows = results.map(r =>
+    `<tr><td class="td-left">${esc(r.left)}</td><td class="td-node">${esc(r.node)}</td><td class="td-right">${esc(r.right)}</td></tr>`
+  ).join('');
+  el.innerHTML = `<table class="kwic-table"><thead><tr><th class="th-left">left context</th><th>node</th><th>right context</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// FREQ
+function runFreq() {
+  const n = parseInt(document.getElementById('freqN').value) || 30;
+  const freq = {};
+  corpusWords.forEach(w => freq[w] = (freq[w]||0) + 1);
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,n);
+  const max = sorted[0]?.[1] || 1;
+  document.getElementById('freqMeta').textContent = 'top ' + sorted.length + ' words';
+  lastFreq = sorted;
+  document.getElementById('freqDownload').disabled = !sorted.length;
+  document.getElementById('freqResults').innerHTML = '<div class="freq-list">' + sorted.map(([w,c]) =>
+    `<div class="freq-item"><span class="freq-word">${esc(w)}</span><div class="freq-bar-wrap"><div class="freq-bar" style="width:${Math.round(c/max*100)}%"></div></div><span class="freq-count">${c}</span></div>`
+  ).join('') + '</div>';
+}
+
+// COLLOC
+let lastCollocNode = '';
+let lastCollocSpan = 3;
+
+function runColloc() {
+  const word = document.getElementById('collocWord').value.trim().toLowerCase();
+  const span = parseInt(document.getElementById('collocSpan').value) || 3;
+  if (!word || !corpusText) return;
+  lastCollocNode = word;
+  lastCollocSpan = span;
+  const tokens = corpusWords;
+  const re = new RegExp('^' + word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '$');
+  const freq = {};
+  for (let i = 0; i < tokens.length; i++) {
+    if (re.test(tokens[i])) {
+      for (let j = i-span; j <= i+span; j++) {
+        if (j===i||j<0||j>=tokens.length) continue;
+        freq[tokens[j]] = (freq[tokens[j]]||0) + 1;
+      }
+    }
+  }
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('collocMeta').textContent = sorted.length + ' collocates of "' + word + '" · span ±' + span + ' · click any word to see concordance';
+  lastColloc = sorted;
+  document.getElementById('collocDownload').disabled = !sorted.length;
+  const el = document.getElementById('collocResults');
+  if (!sorted.length) { el.innerHTML = '<div class="placeholder">No collocates found. Check the spelling.</div>'; return; }
+  el.innerHTML = '<div class="colloc-cloud">' + sorted.map(([w,c]) =>
+    `<span class="colloc-chip" title="${c} time${c===1?'':'s'} as collocate within ±${span} tokens" onclick="openCollocKWIC('${w.replace(/'/g,"\\'")}')"><span>${esc(w)}</span><span class="colloc-n">${c}</span></span>`
+  ).join('') + '</div>';
+}
+
+// PATTERN with KWIC context
+function runPattern() {
+  const pat = document.getElementById('patternInput').value.trim();
+  const win = parseInt(document.getElementById('patternWindow').value) || 5;
+  if (!pat || !corpusText) return;
+  const flags = document.getElementById('patternCase').checked ? 'g' : 'gi';
+  let re;
+  try { re = new RegExp(pat, flags); }
+  catch(e) { document.getElementById('patternResults').innerHTML = `<div class="error-msg">Invalid regex: ${esc(e.message)}</div>`; return; }
+
+  const tokens = corpusText.split(/\s+/).filter(t => t.length > 0);
+  const joined = tokens.join(' ');
+  const tokenStarts = [];
+  let cp = 0;
+  tokens.forEach(t => { tokenStarts.push(cp); cp += t.length + 1; });
+
+  const results = [];
+  const seen = new Set();
+  const reG = new RegExp(pat, flags.includes('g') ? flags : flags + 'g');
+  let m;
+  while ((m = reG.exec(joined)) !== null) {
+    const ms = m.index, me = m.index + m[0].length;
+    let ti = tokenStarts.findIndex((s,i) => s <= ms && (i===tokenStarts.length-1 || tokenStarts[i+1] > ms));
+    if (ti === -1) ti = 0;
+    let te = tokenStarts.findIndex((s,i) => s < me && (i===tokenStarts.length-1 || tokenStarts[i+1] >= me));
+    if (te === -1) te = ti;
+    const key = ti + '_' + te;
+    if (!seen.has(key)) {
+      seen.add(key);
+      results.push({
+        left: tokens.slice(Math.max(0,ti-win),ti).join(' '),
+        node: m[0],
+        right: tokens.slice(te+1, te+1+win).join(' ')
+      });
+    }
+    if (m[0].length === 0) reG.lastIndex++;
+  }
+
+  document.getElementById('patternMeta').textContent = results.length + ' match' + (results.length===1?'':'es') + ' · all results · context window ±' + win;
+  lastPattern = results;
+  document.getElementById('patternDownload').disabled = !results.length;
+  const el = document.getElementById('patternResults');
+  if (!results.length) { el.innerHTML = '<div class="placeholder">No matches found.</div>'; return; }
+  const rows = results.map(r =>
+    `<tr><td class="td-left">${esc(r.left)}</td><td class="td-node">${esc(r.node)}</td><td class="td-right">${esc(r.right)}</td></tr>`
+  ).join('');
+  el.innerHTML = `<table class="kwic-table"><thead><tr><th class="th-left">left context</th><th>match</th><th>right context</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// COLLOC MODAL
+let lastModalRows = [];
+
+function openCollocKWIC(collocate) {
+  const node = lastCollocNode;
+  const win = lastCollocSpan + 3;
+  const tokens = corpusText.split(/\s+/).filter(t => t.length);
+  const reNode = new RegExp('\\b' + node.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
+  const reColloc = new RegExp('\\b' + collocate.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
+
+  const rows = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (reNode.test(tokens[i])) {
+      const start = Math.max(0, i - win), end = Math.min(tokens.length, i + win + 1);
+      const window = tokens.slice(start, end);
+      const hasColloc = window.some(t => reColloc.test(t));
+      if (!hasColloc) continue;
+      // Find collocate position within window for highlighting
+      const localI = i - start;
+      const collocIdx = window.findIndex((t, idx) => idx !== localI && reColloc.test(t));
+      const left = tokens.slice(start, i).join(' ');
+      const right = tokens.slice(i + 1, end).join(' ');
+      // Split right into before-collocate and after
+      const rightTokens = tokens.slice(i + 1, end);
+      const collocInRight = rightTokens.findIndex(t => reColloc.test(t));
+      const leftTokens2 = tokens.slice(start, i);
+      const collocInLeft = [...leftTokens2].reverse().findIndex(t => reColloc.test(t));
+
+      rows.push({ left, node: tokens[i], right, collocate, collocIdx, leftTokens: leftTokens2, rightTokens });
+    }
+  }
+
+  lastModalRows = rows;
+  document.getElementById('modalTitle').innerHTML = `"<span>${esc(collocate)}</span>" + "${esc(node)}"`;
+  document.getElementById('modalSubtitle').textContent = rows.length + ' concordance line' + (rows.length===1?'':'s') + ' (node word occurrences near collocate)';
+  document.getElementById('modalMeta').textContent = rows.length + ' concordance lines · search window ±' + win + ' tokens';
+
+  const tbody = document.getElementById('modalBody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:1.5rem;text-align:center;color:var(--ink3);font-style:italic">No co-occurrences found in this window.</td></tr>';
+  } else {
+    tbody.innerHTML = rows.map(r => {
+      // Highlight collocate in left/right context
+      const hlLeft = r.left.replace(new RegExp('(\\b' + collocate.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b)', 'gi'), '<mark style="background:rgba(24,95,165,0.15);border-radius:2px;padding:1px 2px;font-weight:500;color:#185FA5">$1</mark>');
+      const hlRight = r.right.replace(new RegExp('(\\b' + collocate.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b)', 'gi'), '<mark style="background:rgba(24,95,165,0.15);border-radius:2px;padding:1px 2px;font-weight:500;color:#185FA5">$1</mark>');
+      // Show collocate cell: check if it falls left or right
+      const collocInLeft = new RegExp('\\b' + collocate.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i').test(r.left);
+      return `<tr>
+        <td class="td-left" style="font-family:var(--mono);font-size:12px;color:var(--ink2)">${hlLeft}</td>
+        <td class="td-node-a">${esc(r.node)}</td>
+        <td class="td-right" style="font-family:var(--mono);font-size:12px;color:var(--ink2)">${hlRight}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('collocModal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('collocModal')) {
+    document.getElementById('collocModal').classList.remove('open');
+  }
+}
+
+function downloadModalCSV() {
+  if (!lastModalRows.length) return;
+  const rows = [['left_context', 'node', 'right_context'], ...lastModalRows.map(r => [r.left, r.node, r.right])];
+  triggerCSV(rows, 'collocate_concordance.csv');
+}
+
+// Enter key shortcuts
+['kwicWord'].forEach(id => document.getElementById(id)?.addEventListener('keydown', e => e.key==='Enter' && runKWIC()));
+['collocWord'].forEach(id => document.getElementById(id)?.addEventListener('keydown', e => e.key==='Enter' && runColloc()));
+['patternInput'].forEach(id => document.getElementById(id)?.addEventListener('keydown', e => e.key==='Enter' && runPattern()));
+
+// Close modal on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('collocModal').classList.remove('open');
+});
+
+function toggleHelp() {
+  const panel = document.getElementById('helpPanel');
+  const btn = document.getElementById('helpToggle');
+  const open = panel.classList.toggle('open');
+  btn.classList.toggle('active', open);
+  btn.querySelector('.help-icon').textContent = open ? '×' : '?';
+}
+
+function insertPattern(pat) {
+  document.getElementById('patternInput').value = pat;
+  document.getElementById('helpPanel').classList.remove('open');
+  document.getElementById('helpToggle').classList.remove('active');
+  document.getElementById('helpToggle').querySelector('.help-icon').textContent = '?';
+  document.getElementById('patternInput').focus();
+}
+
+// ── CSV DOWNLOAD ──
+let lastKWIC = [], lastFreq = [], lastColloc = [], lastPattern = [];
+
+function csvCell(s) {
+  const str = String(s).replace(/"/g, '""');
+  return /[,"\n\r]/.test(str) ? `"${str}"` : str;
+}
+
+function triggerCSV(rows, filename) {
+  const csv = rows.map(r => r.map(csvCell).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadKWIC() {
+  if (!lastKWIC.length) return;
+  const rows = [['left_context','node','right_context'], ...lastKWIC.map(r => [r.left, r.node, r.right])];
+  triggerCSV(rows, 'kwic_results.csv');
+}
+
+function downloadFreq() {
+  if (!lastFreq.length) return;
+  const rows = [['word','frequency'], ...lastFreq.map(([w,c]) => [w, c])];
+  triggerCSV(rows, 'frequency_results.csv');
+}
+
+function downloadColloc() {
+  if (!lastColloc.length) return;
+  const rows = [['collocate','frequency'], ...lastColloc.map(([w,c]) => [w, c])];
+  triggerCSV(rows, 'collocations_results.csv');
+}
+
+function downloadPattern() {
+  if (!lastPattern.length) return;
+  const rows = [['left_context','match','right_context'], ...lastPattern.map(r => [r.left, r.node, r.right])];
+  triggerCSV(rows, 'pattern_results.csv');
+}
+
+// ── N-GRAMS ──
+let lastNgram = [];
+
+function runNgram() {
+  const n = parseInt(document.getElementById('ngramN').value) || 2;
+  const top = parseInt(document.getElementById('ngramTop').value) || 30;
+  if (!corpusWords.length) return;
+  const freq = {};
+  for (let i = 0; i <= corpusWords.length - n; i++) {
+    const gram = corpusWords.slice(i, i + n).join(' ');
+    freq[gram] = (freq[gram] || 0) + 1;
+  }
+  const sorted = Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, top);
+  lastNgram = sorted;
+  document.getElementById('ngramDownload').disabled = !sorted.length;
+  document.getElementById('ngramMeta').textContent = 'top ' + sorted.length + ' ' + n + '-grams · ' + Object.keys(freq).length.toLocaleString() + ' unique';
+  const max = sorted[0]?.[1] || 1;
+  document.getElementById('ngramResults').innerHTML = '<div class="freq-list">' + sorted.map(([g,c]) =>
+    `<div class="freq-item"><span class="freq-word" style="min-width:260px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;display:inline-block">${esc(g)}</span><div class="freq-bar-wrap" style="flex:1;min-width:0"><div class="freq-bar" style="width:${Math.round(c/max*100)}%"></div></div><span class="freq-count" style="flex-shrink:0">${c}</span></div>`
+  ).join('') + '</div>';
+}
+
+function downloadNgram() {
+  if (!lastNgram.length) return;
+  triggerCSV([['ngram','frequency'], ...lastNgram.map(([g,c]) => [g,c])], 'ngram_results.csv');
+}
+
+// ── DISPERSION PLOT ──
+function runDispersion() {
+  const input = document.getElementById('dispersionWords').value;
+  const words = input.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+  if (!words.length || !corpusWords.length) return;
+  const total = corpusWords.length;
+  const SEGMENTS = 200;
+  const segSize = total / SEGMENTS;
+  const colours = ['#2E7D5E','#185FA5','#1D9E75','#BA7517','#533AB7'];
+
+  // Build hit arrays per word
+  const hits = words.map(word => {
+    const re = new RegExp('^' + word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '$');
+    const positions = [];
+    corpusWords.forEach((w, i) => { if (re.test(w)) positions.push(i); });
+    return { word, positions };
+  });
+
+  document.getElementById('dispersionMeta').textContent =
+    words.map((w,i) => hits[i].positions.length + ' occurrences of "' + w + '"').join(' · ');
+
+  const rowH = 28;
+  const svgH = words.length * rowH + 40;
+  const svgW = 700;
+  const plotX = 120, plotW = svgW - plotX - 20;
+
+  let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:var(--mono);font-size:11px;">`;
+  // axis
+  svg += `<line x1="${plotX}" y1="${svgH-20}" x2="${plotX+plotW}" y2="${svgH-20}" stroke="var(--border2)" stroke-width="1"/>`;
+  [0,25,50,75,100].forEach(pct => {
+    const x = plotX + plotW * pct/100;
+    svg += `<line x1="${x}" y1="10" x2="${x}" y2="${svgH-20}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3,3"/>`;
+    svg += `<text x="${x}" y="${svgH-6}" text-anchor="middle" fill="var(--ink3)">${pct}%</text>`;
+  });
+
+  hits.forEach(({ word, positions }, wi) => {
+    const y = wi * rowH + 20;
+    const col = colours[wi % colours.length];
+    svg += `<text x="${plotX-6}" y="${y+10}" text-anchor="end" fill="var(--ink2)">${esc(word)}</text>`;
+    svg += `<rect x="${plotX}" y="${y}" width="${plotW}" height="${rowH-6}" fill="var(--bg2)" rx="2"/>`;
+    positions.forEach(pos => {
+      const x = plotX + (pos / total) * plotW;
+      svg += `<line x1="${x}" y1="${y+1}" x2="${x}" y2="${y+rowH-8}" stroke="${col}" stroke-width="1.2" opacity="0.7"/>`;
+    });
+  });
+  svg += '</svg>';
+  document.getElementById('dispersionResults').innerHTML = svg;
+}
+
+// ── TYPE/TOKEN RATIO ──
+function runTTR() {
+  const winSize = parseInt(document.getElementById('mattrWindow').value) || 100;
+  if (!corpusWords.length) return;
+  const tokens = corpusWords.length;
+  const types = new Set(corpusWords).size;
+  const ttr = (types / tokens * 100).toFixed(2);
+
+  // MATTR
+  let mattrSum = 0;
+  const windows = tokens - winSize + 1;
+  if (windows > 0) {
+    for (let i = 0; i < windows; i++) {
+      const win = new Set(corpusWords.slice(i, i + winSize)).size;
+      mattrSum += win / winSize;
+    }
+  }
+  const mattr = windows > 0 ? (mattrSum / windows * 100).toFixed(2) : '—';
+
+  // Per-file breakdown if multiple
+  let fileBreakdown = '';
+  if (loadedFiles.length > 1) {
+    fileBreakdown = '<div style="margin-top:1.25rem"><div class="section-label" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:8px">Per file</div><table style="width:100%;border-collapse:collapse;font-size:13px;">'
+      + '<tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:5px 8px;font-weight:400;color:var(--ink3);font-size:11px">File</th><th style="padding:5px 8px;font-weight:400;color:var(--ink3);font-size:11px">Tokens</th><th style="padding:5px 8px;font-weight:400;color:var(--ink3);font-size:11px">Types</th><th style="padding:5px 8px;font-weight:400;color:var(--ink3);font-size:11px">TTR</th></tr>';
+    loadedFiles.forEach(f => {
+      const fw = (f.text.toLowerCase().match(/\b[a-záàâäéèêëîïôùûüçœ']+\b/g) || []);
+      const ft = fw.length, fty = new Set(fw).size;
+      const fttr = ft ? (fty/ft*100).toFixed(2) : '—';
+      fileBreakdown += `<tr style="border-bottom:0.5px solid var(--border)"><td style="padding:5px 8px;font-family:var(--mono);font-size:12px;color:var(--ink2)">${esc(f.name)}</td><td style="padding:5px 8px;font-family:var(--mono);text-align:right">${fmt(ft)}</td><td style="padding:5px 8px;font-family:var(--mono);text-align:right">${fmt(fty)}</td><td style="padding:5px 8px;font-family:var(--mono);text-align:right;color:var(--accent)">${fttr}%</td></tr>`;
+    });
+    fileBreakdown += '</table></div>';
+  }
+
+  document.getElementById('ttrMeta').textContent = 'MATTR window: ' + winSize + ' words';
+  document.getElementById('ttrResults').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem">
+      <div class="stat-card"><div class="stat-label">Tokens</div><div class="stat-val">${fmt(tokens)}</div></div>
+      <div class="stat-card"><div class="stat-label">Types</div><div class="stat-val">${fmt(types)}</div></div>
+      <div class="stat-card"><div class="stat-label">TTR</div><div class="stat-val">${ttr}%</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr;gap:10px">
+      <div class="stat-card"><div class="stat-label">MATTR (window ${winSize})</div><div class="stat-val" style="color:var(--accent)">${mattr}%</div></div>
+    </div>
+    ${fileBreakdown}`;
+}
+
+function runKeywords() {
+  const top = parseInt(document.getElementById('keywordsTop').value) || 30;
+  if (!corpusWords.length) return;
+
+  // Single file: explain the limitation
+  if (loadedFiles.length < 2) {
+    document.getElementById('keywordsMeta').textContent = '—';
+    document.getElementById('keywordsDownload').disabled = true;
+    document.getElementById('keywordsResults').innerHTML = `
+      <div style="padding:1rem 0; max-width:560px; line-height:1.8; font-size:13px; color:var(--ink2);">
+        <p style="font-weight:500; color:var(--ink); margin-bottom:0.5rem;">Keyword analysis requires at least two texts.</p>
+        <p>This tool works by comparing the vocabulary of one text against another — identifying words that appear <em>significantly more often</em> in one text than you would expect given its size. This comparison is what makes a word a "keyword": not just frequent, but unusually frequent relative to a reference.</p>
+        <p style="margin-top:0.75rem">With only one file loaded, there is nothing to compare against, so the results would be meaningless. Please load a second document (or more) and run the analysis again.</p>
+      </div>`;
+    return;
+  }
+
+  // Multi-file: compare each file against the rest combined using log-likelihood
+  const corpusFreq = {};
+  corpusWords.forEach(w => corpusFreq[w] = (corpusFreq[w]||0) + 1);
+  const corpusTotal = corpusWords.length;
+
+  let results = [];
+  loadedFiles.forEach(f => {
+    const fWords = (f.text.toLowerCase().match(/\b[a-záàâäéèêëîïôùûüçœ']+\b/g) || []);
+    const fFreq = {}, fTotal = fWords.length;
+    fWords.forEach(w => fFreq[w] = (fFreq[w]||0) + 1);
+    const refTotal = corpusTotal - fTotal;
+    const allWords = new Set([...Object.keys(fFreq), ...Object.keys(corpusFreq)]);
+    allWords.forEach(w => {
+      const a = fFreq[w] || 0;
+      const b = (corpusFreq[w] || 0) - a;
+      if (a < 2) return;
+      const ll = logLikelihood(a, b, fTotal, refTotal);
+      if (ll > 3.84) results.push({ word: w, freq: a, ll: +ll.toFixed(2), file: f.name });
+    });
+  });
+  results.sort((a,b) => b.ll - a.ll);
+
+  lastKeywords = results.slice(0, top);
+  document.getElementById('keywordsDownload').disabled = !lastKeywords.length;
+  document.getElementById('keywordsMeta').textContent = lastKeywords.length + ' keywords · sorted by log-likelihood (LL) score';
+
+  const max = lastKeywords[0]?.ll || 1;
+  document.getElementById('keywordsResults').innerHTML =
+    `<p style="font-size:12px;color:var(--ink3);margin-bottom:10px;line-height:1.6;">The <strong style="color:var(--ink2)">LL score</strong> measures how statistically unexpected a word's frequency is in that file compared to the rest of the corpus. The higher the score, the more distinctive the word. A score above 3.84 is statistically significant (p &lt; 0.05); above 10.83 is highly significant (p &lt; 0.001).</p>
+    <div class="freq-list">` + lastKeywords.map(k =>
+      `<div class="freq-item">
+        <span class="freq-word" style="min-width:120px">${esc(k.word)}</span>
+        <span style="font-size:11px;color:var(--ink3);font-family:var(--mono);min-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="${esc(k.file)}">${esc(k.file.length>18?k.file.slice(0,16)+'…':k.file)}</span>
+        <div class="freq-bar-wrap"><div class="freq-bar" style="width:${Math.round(k.ll/max*100)}%"></div></div>
+        <span class="freq-count" title="log-likelihood score: ${k.ll}">LL ${k.ll}</span>
+      </div>`
+    ).join('') + '</div>';
+}
+
+function logLikelihood(a, b, total1, total2) {
+  const E1 = total1 * (a + b) / (total1 + total2);
+  const E2 = total2 * (a + b) / (total1 + total2);
+  const ll = 2 * ((a > 0 ? a * Math.log(a / E1) : 0) + (b > 0 ? b * Math.log(b / E2) : 0));
+  return ll;
+}
+
+function downloadKeywords() {
+  if (!lastKeywords.length) return;
+  triggerCSV([['word','frequency','log_likelihood','file'], ...lastKeywords.map(k => [k.word, k.freq, k.ll, k.file])], 'keywords_results.csv');
+}
+
+// ── EXPORT ──
+function updateExportPanel() {
+  if (!corpusText) return;
+  document.getElementById('exportResults').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;padding:0.5rem 0">
+      <p style="font-size:13px;color:var(--ink2)">Corpus contains <strong>${fmt(corpusWords.length)}</strong> words across <strong>${loadedFiles.length}</strong> file${loadedFiles.length===1?'':'s'}. Click below to download the full extracted text.</p>
+      <button class="btn btn-primary" onclick="doExport()">↓ Download as plain text (.txt)</button>
+    </div>`;
+}
+
+function doExport() {
+  if (!corpusText) return;
+  const blob = new Blob([corpusText], { type: 'text/plain;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'textoscopia_corpus.txt'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Refresh export panel after rebuild
+const _rebuildOrig = rebuildCorpus;
+window.rebuildCorpus = function() { _rebuildOrig(); updateExportPanel(); };
+
+</script>
+</body>
+</html>
