@@ -1,6 +1,6 @@
 # Textoscopia
 
-**Textoscopia** is a simple, browser-based tool for corpus linguistics analysis. It requires no installation, no server, and no technical expertise — just open the HTML file in any modern browser and upload your documents.
+**Textoscopia** is a simple, browser-based tool for corpus linguistics analysis. It requires no installation, no server, and no technical expertise — just open the HTML file in any modern browser and upload your documents. Alternatively, click [here](https://m-olivierloiseau.com/textoscopia/).
 
 ## What it does
 
@@ -38,6 +38,4 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 
 If you use Textoscopia in your research, please cite it as:
 
-> Olivier, Marc (2025). *Textoscopia: A Simple Browser-Based Tool for Corpus Linguistics Analysis* (v1.0). Zenodo. https://doi.org/10.5281/zenodo.XXXXXXX
-
-*(Replace the DOI with the one assigned by Zenodo after publication.)*
+> Olivier, Marc (2025). *Textoscopia: A Simple Browser-Based Tool for Corpus Linguistics Analysis* (v1.0). Zenodo. https://doi.org/10.5281/zenodo.19071710
