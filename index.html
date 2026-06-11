@@ -1225,6 +1225,9 @@ async function extractText(file) {
     const buf = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer: buf });
     return { text: result.value, pages: null };
+  } else if (file.name.toLowerCase().endsWith('.txt')) {
+    const txt = await file.text();
+    return { text: txt, pages: null };
   } else {
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
@@ -1237,6 +1240,7 @@ async function extractText(file) {
     return { text: txt, pages: pdf.numPages };
   }
 }
+
 
 function rebuildCorpus() {
   const combinedText = loadedFiles.map(f => f.text).join('\n');
